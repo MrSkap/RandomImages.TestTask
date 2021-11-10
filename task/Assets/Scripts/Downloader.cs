@@ -9,20 +9,13 @@ public class Downloader : MonoBehaviour
     [SerializeField]
     int counter = 0;
     const string url = "https://picsum.photos/200";
-    // Start is called before the first frame update
     CardOpener cardOpener;
     public ModeOfWork mode;
-    string imagePath = "C:/Users/User/Documents/GitHub/ExpertSystem/RandomImages.TestTask/task/Assets/Resources/Images/";
+    string imagePath = "Assets/Resources/Images/";
     void Start()
     {
         cardOpener = GetComponent<CardOpener>();
         counter = 0;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 
     void DownloadImageAsync(string imageName)
@@ -32,12 +25,6 @@ public class Downloader : MonoBehaviour
 		client.DownloadFileCompleted += Client_DownloadFileCompleted;
 	}
 
-    void DownloadImage(string imageName)
-    {
-        WebClient client = new WebClient();
-        client.DownloadFile(new System.Uri(url), imageName + imageName.ToString() + ".png");
-        client.DownloadFileCompleted += Client_DownloadFileCompleted;
-    }
 
     private void Client_DownloadFileCompleted(object sender, System.ComponentModel.AsyncCompletedEventArgs e)
 	{
@@ -49,9 +36,14 @@ public class Downloader : MonoBehaviour
                 counter++;
                 break;
             case ModeOfWork.Series:
-                if(counter< cardOpener.ReadyCard.Length) cardOpener.ReadyCard[counter] = true;
+                if (counter < cardOpener.ReadyCard.Length)
+                {
+                    cardOpener.ReadyCard[counter] = true;
+                    counter++;
+                }
                 break;
             case ModeOfWork.ByReady:
+                cardOpener.ReadyCard[counter] = true;
                 TurnOnByCompleted(counter);
                 counter++;
                 break;
@@ -63,7 +55,7 @@ public class Downloader : MonoBehaviour
 
     void TurnOnByCompleted(int numberOfImage)
 	{
-        cardOpener.OpenCard(numberOfImage);
+        StartCoroutine(cardOpener.OpenCard(numberOfImage));
 	}
 
     public void LoadImagesAsync(int CountOfImages)
@@ -75,44 +67,53 @@ public class Downloader : MonoBehaviour
         }
 	}
 
-    public void StartDownload(int countOfImages)
+    public IEnumerator StartDownload(int countOfImages)
 	{
-        ResetAll();
+        Debug.Log("in start");
+        yield return StartCoroutine(ResetAll());
         switch (mode)
         {
             case ModeOfWork.AllByOne:
-                StartCoroutine(cardOpener.OpenAllCards());
-                LoadImagesAsync(countOfImages);
+                StartCoroutine(LoadAll(countOfImages));
                 break;
             case ModeOfWork.Series:
                 StartCoroutine(LoadOneByOne());
                 break;
             case ModeOfWork.ByReady:
-                LoadImagesAsync(countOfImages);
+                StartCoroutine(LoadByReady(countOfImages));
                 break;
             default:
                 break;
         }
     }
 
+    IEnumerator LoadByReady(int countOfImages)
+	{
+        yield return StartCoroutine(ResetAll());
+        LoadImagesAsync(countOfImages);
+
+    }
+    IEnumerator LoadAll(int countOfImages)
+	{
+        yield return StartCoroutine(ResetAll());
+        StartCoroutine(cardOpener.OpenAllCards());
+        LoadImagesAsync(countOfImages);
+    }
     IEnumerator LoadOneByOne()
 	{
+        yield return StartCoroutine(ResetAll());
         bool allNotOpen = true;
         int numberOfLoadedImage = 0;
         DownloadImageAsync(numberOfLoadedImage.ToString());
-        cardOpener.ReadyCard[0] = true;
 		while (allNotOpen)
 		{
-            
             for (int i = numberOfLoadedImage; i< cardOpener.ReadyCard.Length; i++)
 			{
                 if (cardOpener.ReadyCard[i] == true)
                 {
                     cardOpener.ReadyCard[numberOfLoadedImage] = true;
-                    //Debug.Log(i.ToString() + " READY");
-                    cardOpener.OpenCard(numberOfLoadedImage);
+                    yield return StartCoroutine(cardOpener.OpenCard(numberOfLoadedImage));
                     numberOfLoadedImage++;
-                    counter++;
                     DownloadImageAsync(numberOfLoadedImage.ToString());
                 }
 			}
@@ -124,14 +125,16 @@ public class Downloader : MonoBehaviour
         }
         Debug.Log("Done!");
     }
-
-    void ResetAll()
+    public IEnumerator ResetAll()
 	{
-        StopAllCoroutines();
+        Debug.Log("in reset");
         counter = 0;
         for (int i = 0; i < cardOpener.ReadyCard.Length; i++)
         {
             cardOpener.ReadyCard[i] = false;
+            cardOpener.opendCards[i] = false;
         }
+        cardOpener.allAreOpend = false;
+        yield return StartCoroutine(cardOpener.AllCardsFlipBack());
     }
 }

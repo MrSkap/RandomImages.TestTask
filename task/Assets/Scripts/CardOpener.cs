@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.UI;
+using DG.Tweening;
 
 public class CardOpener : MonoBehaviour
 {
@@ -10,32 +11,38 @@ public class CardOpener : MonoBehaviour
     public Image[] images;
     float imageWidth;
     float imageHeight;
-    public bool[] ReadyCard = new bool[5];
-    // Start is called before the first frame update
+    const int countOfCards = 5;
+    public bool[] ReadyCard = new bool[countOfCards];
+
     void Start()
     {
         imageHeight = images[0].sprite.rect.height;
         imageWidth = images[0].sprite.rect.width;
+
+        foreach(var card in cards)
+		{
+            card.GetComponent<Card>().FinishAnimation.AddListener(onCompliteAnim);
+
+        }
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 
-    public void OpenCard(int numberOfCard)
+    public IEnumerator OpenCard(int numberOfCard)
 	{
+        while (ReadyCard[numberOfCard] == false) yield return new WaitForFixedUpdate();
         AssetDatabase.Refresh();
         images[numberOfCard].sprite = Resources.Load<Sprite>("Images/" + numberOfCard.ToString());
+        //RotateOn180(cards[numberOfCard]);
+        cards[numberOfCard].GetComponent<Card>().FlipToFront();
+        yield return StartCoroutine(WaitUntilCardAnimEnds(numberOfCard));
         Debug.Log("Card " + numberOfCard.ToString() + " is ready!");
 	}
-
+    
     public IEnumerator OpenAllCards()
 	{
         bool ready = false;
         int counter = 0;
-        while (!ready)
+        while (!ready) //wait unit all images are downladed
         {
             counter = 0;
             for (int i = 0; i< ReadyCard.Length; i++)
@@ -45,7 +52,7 @@ public class CardOpener : MonoBehaviour
                 counter++;
 			    }
 		    }
-            if (counter == 5) ready = true;
+            if (counter == countOfCards) ready = true;
             yield return new WaitForFixedUpdate();
 		}
         AssetDatabase.Refresh();
@@ -53,6 +60,83 @@ public class CardOpener : MonoBehaviour
 		{
             images[i].sprite = Resources.Load<Sprite>("Images/" + i.ToString());
         }
+        foreach(var card in cards)
+		{
+            card.GetComponent<Card>().FlipToFront();
+		}
+        yield return StartCoroutine(WaitUntilAllWillBeComplited());
+        //StartCorutine(WaitUntil....)
         Debug.Log("All are ready!");
+    }
+
+    public IEnumerator AllCardsFlipBack()
+    {
+        StopAllCoroutines();
+        complitedAnimation = false;
+        StartCoroutine(WaitUntilAllWillBeComplited());
+        foreach (var card in cards)
+        {
+            card.GetComponent<Card>().FlipToBack();
+        }
+        while (countOfComplitedAnimation < cards.Length - 1 && !complitedAnimation)
+        {
+            yield return new WaitForFixedUpdate();
+        }
+        for (int i = 0; i < ReadyCard.Length; i++)
+        {
+            ReadyCard[i] = false;
+        }
+    }
+
+    int countOfComplitedAnimation = 0;
+    bool complitedAnimation = false;
+    public IEnumerator WaitUntilAllWillBeComplited()
+	{
+        countOfComplitedAnimation = 0;
+        while (countOfComplitedAnimation < cards.Length-1)
+		{
+            yield return new WaitForFixedUpdate();
+		}
+        complitedAnimation = true;
+
+    }
+
+
+    public bool allAreOpend = false;
+    public bool[] opendCards = new bool[countOfCards];
+    public IEnumerator WaitUntilAllWillBeReady()
+    {
+        allAreOpend = false;
+        for (int i = 0; i < countOfCards; i++)
+		{
+            opendCards[i] = false;
+            StartCoroutine(WaitUntilCardAnimEnds(i));
+        }
+		while (!allAreOpend)
+		{
+            int openedCards = 0;
+            for (int i = 0; i < countOfCards; i++)
+                if (cards[i].GetComponent<Card>().isOpend == true)
+                    openedCards++;
+            if (openedCards == countOfCards)
+                allAreOpend = true;
+            yield return new WaitForFixedUpdate();
+        }    
+
+
+    }
+
+    public IEnumerator WaitUntilCardAnimEnds(int numberOfCard)
+	{
+        while (cards[numberOfCard].GetComponent<Card>().isOpend == false)
+        {
+            yield return new WaitForFixedUpdate();
+        }
+        opendCards[numberOfCard] = true;
+    }
+
+    void onCompliteAnim()
+	{
+        countOfComplitedAnimation++;
     }
 }
