@@ -32,17 +32,15 @@ public class CardOpener : MonoBehaviour
         while (ReadyCard[numberOfCard] == false) yield return new WaitForFixedUpdate();
         AssetDatabase.Refresh();
         images[numberOfCard].sprite = Resources.Load<Sprite>("Images/" + numberOfCard.ToString());
-        //RotateOn180(cards[numberOfCard]);
         cards[numberOfCard].GetComponent<Card>().FlipToFront();
         yield return StartCoroutine(WaitUntilCardAnimEnds(numberOfCard));
-        Debug.Log("Card " + numberOfCard.ToString() + " is ready!");
 	}
     
     public IEnumerator OpenAllCards()
 	{
         bool ready = false;
         int counter = 0;
-        while (!ready) //wait unit all images are downladed
+        while (!ready)
         {
             counter = 0;
             for (int i = 0; i< ReadyCard.Length; i++)
@@ -65,8 +63,6 @@ public class CardOpener : MonoBehaviour
             card.GetComponent<Card>().FlipToFront();
 		}
         yield return StartCoroutine(WaitUntilAllWillBeComplited());
-        //StartCorutine(WaitUntil....)
-        Debug.Log("All are ready!");
     }
 
     public IEnumerator AllCardsFlipBack()

@@ -127,7 +127,6 @@ public class Downloader : MonoBehaviour
     }
     public IEnumerator ResetAll()
 	{
-        Debug.Log("in reset");
         counter = 0;
         for (int i = 0; i < cardOpener.ReadyCard.Length; i++)
         {

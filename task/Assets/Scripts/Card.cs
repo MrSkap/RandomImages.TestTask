@@ -17,7 +17,6 @@ public class Card : MonoBehaviour
     Sequence FlipOnBackAnim;
     float timeOfAnimation = 0.3f;
     public UnityEvent FinishAnimation;
-	// Start is called before the first frame update
 	private void Awake()
 	{
         DOTween.Init();
